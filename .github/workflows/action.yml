@@ -1,0 +1,57 @@
+name: Pedido prueba 2
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+        #ejecuta las pruebas
+      - name: Instalar dependencias y ejecutar tests
+        run: ./mvnw clean verify
+
+        #construye la imagen
+      - name: Construir imagen Docker
+        run: docker build -t miapp:latest .
+
+  # security-scan:
+  #   runs-on: ubuntu-latest
+  #   needs: build-test
+  #   steps:
+  #     - name: Checkout del código
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Escanear vulnerabilidades con Snyk
+  #       uses: snyk/actions/docker@master
+  #       env:
+  #         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+  #       with:
+  #         image: miapp:latest
+  #         args: --severity-threshold=medium
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build-test] #, security-scan
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Instalar Docker Compose
+        run: sudo apt-get update && sudo apt-get install -y docker-compose
+
+        #levanta el servicio automáticamente
+      - name: Levantar entorno simulado
+        run: docker-compose up -d --build
